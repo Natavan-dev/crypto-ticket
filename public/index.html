@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoTicket | Kriptoqrafik Bilet Portalı</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
+            color: #f8fafc; min-height: 100vh; display: flex; justify-content: center; align-items: center; overflow-x: hidden; position: relative;
+        }
+        .container {
+            width: 100%; max-width: 550px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); margin: 20px;
+        }
+        .header-title { text-align: center; margin-bottom: 30px; }
+        .header-title h1 { font-size: 26px; font-weight: 700; background: linear-gradient(to right, #818cf8, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+        .header-title p { font-size: 14px; color: #94a3b8; }
+        .section { margin-bottom: 25px; }
+        .section h3 { font-size: 16px; font-weight: 600; color: #cbd5e1; margin-bottom: 12px; }
+        .input-group { margin-bottom: 15px; }
+        input {
+            width: 100%; padding: 14px 16px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; color: #fff; font-size: 14px; outline: none; transition: all 0.3s ease;
+        }
+        input:focus { border-color: #818cf8; box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.15); }
+        button {
+            width: 100%; padding: 14px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5); }
+        .divider { height: 1px; background: rgba(255, 255, 255, 0.1); margin: 30px 0; }
+        .result-box { margin-top: 15px; padding: 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; display: none; word-break: break-all; }
+        .result-success { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; }
+        .result-error { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; }
+        code { background: rgba(0, 0, 0, 0.3); padding: 2px 6px; border-radius: 4px; font-family: monospace; color: #e2e8f0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-title">
+        <h1>CryptoTicket</h1>
+        <p>Kriptoqrafik İmza ilə Qorunan Rəqəmsal Bilet Sistemi</p>
+    </div>
+
+    <div class="section">
+        <h3>🎟️ Bilet Alışı</h3>
+        <div class="input-group"><input type="text" id="event_name" placeholder="Tədbirin Adı"></div>
+        <div class="input-group"><input type="email" id="owner_email" placeholder="E-poçt ünvanınız"></div>
+        <button onclick="buyTicket()">Bilet Al və İmzala</button>
+        <div id="buyResult" class="result-box"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+        <h3>🔍 Bilet Doğrulaması</h3>
+        <div class="input-group"><input type="text" id="ticket_code" placeholder="Bilet Kodunu daxil edin"></div>
+        <button onclick="verifyTicket()">Bileti Yoxla</button>
+        <div id="verifyResult" class="result-box"></div>
+    </div>
+</div>
+
+<script>
+async function buyTicket() {
+    const event_name = document.getElementById('event_name').value;
+    const owner_email = document.getElementById('owner_email').value;
+    const resultBox = document.getElementById('buyResult');
+    if (!event_name || !owner_email) { showResult(resultBox, 'Bütün xanaları doldurun!', false); return; }
+
+    const res = await fetch('/api/buy-ticket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_name, owner_email })
+    });
+    const data = await res.json();
+    if (data.success) {
+        showResult(resultBox, `<b>Uğurludur!</b> Kod: <code>${data.ticket_code}</code><br><small>İmza: ${data.digital_signature}</small>`, true);
+    } else {
+        showResult(resultBox, `Xəta: ${data.error}`, false);
+    }
+}
+
+async function verifyTicket() {
+    const ticket_code = document.getElementById('ticket_code').value;
+    const resultBox = document.getElementById('verifyResult');
+    if (!ticket_code) { showResult(resultBox, 'Bilet kodunu daxil edin!', false); return; }
+
+    const res = await fetch('/api/verify-ticket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticket_code })
+    });
+    const data = await res.json();
+    showResult(resultBox, `<b>Nəticə:</b> ${data.message}`, data.valid);
+}
+
+function showResult(element, htmlContent, isSuccess) {
+    element.style.display = 'block';
+    element.innerHTML = htmlContent;
+    element.className = `result-box ${isSuccess ? 'result-success' : 'result-error'}`;
+}
+</script>
+</body>
+</html>
